@@ -2,6 +2,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
 import {
   LayoutDashboard, ShoppingCart, TrendingUp, Landmark, Users, BarChart3, LogOut, Menu, X, Gem
 } from 'lucide-react';
@@ -60,25 +61,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {NAV.map(({ href, label, icon: Icon }) => {
             const active = path.startsWith(href);
             return (
-              <motion.a
-                key={href}
-                href={href}
-                whileHover={{ x: -4 }}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all ${
-                  active
-                    ? 'bg-[#C9A84C]/15 text-[#E8C96A] border border-[#C9A84C]/30'
-                    : 'text-[#FAF7F0]/60 hover:text-[#E8C96A] hover:bg-[#C9A84C]/5'
-                }`}
-              >
-                <Icon size={18} />
-                {label}
-                {active && (
-                  <motion.div
-                    layoutId="activeIndicator"
-                    className="mr-auto w-1.5 h-1.5 rounded-full bg-[#E8C96A]"
-                  />
-                )}
-              </motion.a>
+              <Link key={href} href={href}>
+                <motion.div
+                  whileHover={{ x: -4 }}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all cursor-pointer ${
+                    active
+                      ? 'bg-[#C9A84C]/15 text-[#E8C96A] border border-[#C9A84C]/30'
+                      : 'text-[#FAF7F0]/60 hover:text-[#E8C96A] hover:bg-[#C9A84C]/5'
+                  }`}
+                >
+                  <Icon size={18} />
+                  {label}
+                  {active && (
+                    <motion.div
+                      layoutId="activeIndicator"
+                      className="mr-auto w-1.5 h-1.5 rounded-full bg-[#E8C96A]"
+                    />
+                  )}
+                </motion.div>
+              </Link>
             );
           })}
         </nav>
@@ -143,7 +144,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 {NAV.map(({ href, label, icon: Icon }) => {
                   const active = path.startsWith(href);
                   return (
-                    <a
+                    <Link
                       key={href}
                       href={href}
                       onClick={() => setSideOpen(false)}
@@ -155,7 +156,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     >
                       <Icon size={18} />
                       {label}
-                    </a>
+                    </Link>
                   );
                 })}
               </nav>
