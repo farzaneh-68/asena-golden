@@ -2,8 +2,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
 import { Lock, Eye, EyeOff } from 'lucide-react';
+
+const BASE = process.env.NEXT_PUBLIC_BASE_PATH || '';
 
 const ADMIN_PASS = 'asena1403';
 
@@ -52,12 +53,13 @@ export default function AdminLogin() {
           className="text-center mb-8"
         >
           <div className="inline-block rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(201,168,76,0.25)] mb-4 border border-[#C9A84C]/20">
-            <Image
-              src="/logo.jpg"
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`${BASE}/logo.jpg`}
               alt="آسنا گلدن"
               width={120}
               height={120}
-              className="object-contain bg-white"
+              className="object-contain bg-white block"
             />
           </div>
           <motion.h1

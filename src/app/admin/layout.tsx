@@ -3,10 +3,11 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import Image from 'next/image';
 import {
   LayoutDashboard, ShoppingCart, TrendingUp, Landmark, Users, BarChart3, LogOut, Menu, X
 } from 'lucide-react';
+
+const BASE = process.env.NEXT_PUBLIC_BASE_PATH || '';
 
 const NAV = [
   { href: '/admin/dashboard', label: 'داشبورد',       icon: LayoutDashboard },
@@ -19,8 +20,9 @@ const NAV = [
 
 function Logo({ size = 48 }: { size?: number }) {
   return (
-    <Image
-      src="/logo.jpg"
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`${BASE}/logo.jpg`}
       alt="آسنا گلدن"
       width={size}
       height={size}
@@ -111,7 +113,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <LogOut size={20} />
         </button>
         <div className="flex items-center gap-2">
-          <Image src="/logo.jpg" alt="آسنا گلدن" width={32} height={32}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`${BASE}/logo.jpg`} alt="آسنا گلدن" width={32} height={32}
             className="rounded-lg object-contain" style={{ background: '#fff' }} />
           <span className="text-[#E8C96A] font-bold text-sm">آسنا گلدن</span>
         </div>
@@ -119,6 +122,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Menu size={22} />
         </button>
       </div>
+
 
       {/* ── Mobile Drawer ── */}
       <AnimatePresence>

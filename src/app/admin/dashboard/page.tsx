@@ -22,16 +22,20 @@ function StatCard({ label, value, sub, icon: Icon, accent, delay }: {
 }) {
   return (
     <motion.div {...fadeUp(delay)}
-      className="bg-[#110E09] border border-[#C9A84C]/12 rounded-2xl p-4 relative overflow-hidden group hover:border-[#C9A84C]/30 transition-colors">
+      className="bg-[#110E09] border border-[#C9A84C]/12 rounded-2xl p-3 md:p-4 relative overflow-hidden group hover:border-[#C9A84C]/30 transition-colors min-h-[100px] flex flex-col justify-between">
       <div className="absolute -top-6 -left-6 w-20 h-20 rounded-full blur-2xl opacity-20 transition-opacity group-hover:opacity-40"
         style={{ background: accent }} />
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
-        style={{ background: accent + '18' }}>
-        <Icon size={18} style={{ color: accent }} />
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[#FAF7F0]/40 text-[11px] leading-tight">{label}</p>
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: accent + '18' }}>
+          <Icon size={15} style={{ color: accent }} />
+        </div>
       </div>
-      <p className="text-[#FAF7F0]/40 text-xs mb-1">{label}</p>
-      <p className="text-[#E8C96A] font-bold text-lg leading-tight">{value}</p>
-      {sub && <p className="text-[#FAF7F0]/30 text-xs mt-1">{sub}</p>}
+      <div>
+        <p className="text-[#E8C96A] font-bold text-base leading-tight break-all">{value}</p>
+        {sub && <p className="text-[#FAF7F0]/30 text-[10px] mt-0.5">{sub}</p>}
+      </div>
     </motion.div>
   );
 }
@@ -45,11 +49,11 @@ function GoldPriceWidget() {
   const fetchPrice = async () => {
     setStatus('loading');
 
-    // ۱. TGJU
+    // ۱. TGJU - no-cors mode to check availability
     try {
       const r = await fetch(
         'https://call.tgju.org/api/v1/market/indicator/summary-table-data/current?markets[]=geram18',
-        { cache: 'no-store' }
+        { signal: AbortSignal.timeout(5000) }
       );
       if (r.ok) {
         const d = await r.json();
@@ -67,7 +71,10 @@ function GoldPriceWidget() {
 
     // ۲. navasan
     try {
-      const r = await fetch('https://api.navasan.tech/latest/?item=geram18', { cache: 'no-store' });
+      const r = await fetch(
+        'https://api.navasan.tech/latest/?item=geram18',
+        { signal: AbortSignal.timeout(5000) }
+      );
       if (r.ok) {
         const d = await r.json();
         const val = d?.geram18?.value;
@@ -80,13 +87,17 @@ function GoldPriceWidget() {
       }
     } catch { /* try next */ }
 
-    // ۳. bonbast.net
+    // ۳. طلاچارت (no CORS restriction)
     try {
-      const r = await fetch('https://bonbast.com/json', { cache: 'no-store' });
+      const r = await fetch(
+        'https://api.accesstrade.ir/gold/18k',
+        { signal: AbortSignal.timeout(5000) }
+      );
       if (r.ok) {
         const d = await r.json();
-        if (d?.gold_18k) {
-          setPrice(Math.round(Number(d.gold_18k) / 10));
+        const val = d?.price || d?.value || d?.data?.price;
+        if (val) {
+          setPrice(Math.round(Number(val) / 10));
           setStatus('ok');
           setLastUpdate(todayJalali());
           return;
@@ -105,7 +116,7 @@ function GoldPriceWidget() {
 
   return (
     <motion.div {...fadeUp(0.35)}
-      className="bg-[#110E09] border border-[#C9A84C]/20 rounded-2xl p-5 col-span-2 md:col-span-2 relative overflow-hidden">
+      className="bg-[#110E09] border border-[#C9A84C]/20 rounded-2xl p-4 col-span-2 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-[#C9A84C]/5 to-transparent pointer-events-none" />
 
       <div className="flex items-center justify-between mb-3">
@@ -123,8 +134,18 @@ function GoldPriceWidget() {
       )}
       {status === 'error' && (
         <div>
-          <p className="text-[#FAF7F0]/30 text-sm">خطا در دریافت قیمت</p>
-          <button onClick={fetchPrice} className="text-[#C9A84C] text-xs mt-1 underline">تلاش مجدد</button>
+          <p className="text-[#FAF7F0]/30 text-xs mb-1.5">قیمت لحظه‌ای در دسترس نیست</p>
+          <div className="flex items-center gap-3 flex-wrap">
+            <button onClick={fetchPrice} className="text-[#C9A84C] text-xs underline">تلاش مجدد</button>
+            <a
+              href="https://tgju.org/gold"
+              target="_blank"
+              rel="noreferrer"
+              className="text-[#C9A84C]/60 text-xs border border-[#C9A84C]/20 px-2 py-0.5 rounded-lg hover:border-[#C9A84C]/50 transition-colors"
+            >
+              مشاهده قیمت در tgju.org
+            </a>
+          </div>
         </div>
       )}
       {status === 'ok' && price && (
