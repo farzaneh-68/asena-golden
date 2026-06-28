@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Gem, Lock, Eye, EyeOff } from 'lucide-react';
 
-const ADMIN_PASS = process.env.NEXT_PUBLIC_ADMIN_PASS ?? 'gold1234';
+const ADMIN_PASS = process.env.NEXT_PUBLIC_ADMIN_PASS ?? 'Gold@1403';
 
 export default function AdminLogin() {
   const [pass, setPass] = useState('');
@@ -123,7 +123,7 @@ export default function AdminLogin() {
         </div>
 
         <p className="text-center text-[#C9A84C]/30 text-xs mt-4">
-          رمز پیش‌فرض: gold1234
+          رمز پیش‌فرض: Gold@1403
         </p>
       </motion.div>
     </div>
