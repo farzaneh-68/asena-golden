@@ -1,42 +1,37 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, Scale, Receipt, DollarSign, Gem } from 'lucide-react';
+import { TrendingUp, TrendingDown, Scale, Receipt, DollarSign, RefreshCw } from 'lucide-react';
 import { getStats, fmt } from '@/lib/db';
 import { todayJalali } from '@/lib/date';
 
 type Stats = {
-  totalBought: number;
-  totalSold: number;
-  totalProfit: number;
-  totalGoldBought: number;
-  totalGoldSold: number;
-  salesCount: number;
+  totalBought: number; totalSold: number; totalProfit: number;
+  totalGoldBought: number; totalGoldSold: number; salesCount: number;
 };
 
-function StatCard({
-  label, value, sub, icon: Icon, color, delay
-}: {
+const fadeUp = (delay = 0) => ({
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  transition: { delay, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number] },
+});
+
+function StatCard({ label, value, sub, icon: Icon, accent, delay }: {
   label: string; value: string; sub?: string;
-  icon: React.ElementType; color: string; delay: number;
+  icon: React.ElementType; accent: string; delay: number;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.4 }}
-      className="bg-[#110E09] border border-[#C9A84C]/15 rounded-2xl p-5 relative overflow-hidden"
-    >
-      <div className={`absolute top-0 left-0 w-24 h-24 rounded-full opacity-10 blur-2xl ${color}`} />
-      <div className="flex items-start justify-between mb-4">
-        <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${color} bg-opacity-20`}
-          style={{ background: 'rgba(201,168,76,0.1)' }}>
-          <Icon size={20} className="text-[#E8C96A]" />
-        </div>
+    <motion.div {...fadeUp(delay)}
+      className="bg-[#110E09] border border-[#C9A84C]/12 rounded-2xl p-4 relative overflow-hidden group hover:border-[#C9A84C]/30 transition-colors">
+      <div className="absolute -top-6 -left-6 w-20 h-20 rounded-full blur-2xl opacity-20 transition-opacity group-hover:opacity-40"
+        style={{ background: accent }} />
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
+        style={{ background: accent + '18' }}>
+        <Icon size={18} style={{ color: accent }} />
       </div>
-      <p className="text-[#FAF7F0]/50 text-xs mb-1">{label}</p>
-      <p className="text-[#E8C96A] text-xl font-bold">{value}</p>
-      {sub && <p className="text-[#FAF7F0]/40 text-xs mt-1">{sub}</p>}
+      <p className="text-[#FAF7F0]/40 text-xs mb-1">{label}</p>
+      <p className="text-[#E8C96A] font-bold text-lg leading-tight">{value}</p>
+      {sub && <p className="text-[#FAF7F0]/30 text-xs mt-1">{sub}</p>}
     </motion.div>
   );
 }
@@ -44,73 +39,139 @@ function StatCard({
 function GoldPriceWidget() {
   const [price, setPrice] = useState<number | null>(null);
   const [change, setChange] = useState<number | null>(null);
-  const [error, setError] = useState(false);
+  const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading');
+  const [lastUpdate, setLastUpdate] = useState('');
+
+  const fetchPrice = async () => {
+    setStatus('loading');
+
+    // ۱. TGJU
+    try {
+      const r = await fetch(
+        'https://call.tgju.org/api/v1/market/indicator/summary-table-data/current?markets[]=geram18',
+        { cache: 'no-store' }
+      );
+      if (r.ok) {
+        const d = await r.json();
+        const item = d?.current?.geram18;
+        if (item?.p) {
+          const raw = String(item.p).replace(/,/g, '');
+          setPrice(Math.round(Number(raw) / 10));
+          if (item.d) setChange(parseFloat(item.d));
+          setStatus('ok');
+          setLastUpdate(todayJalali());
+          return;
+        }
+      }
+    } catch { /* try next */ }
+
+    // ۲. navasan
+    try {
+      const r = await fetch('https://api.navasan.tech/latest/?item=geram18', { cache: 'no-store' });
+      if (r.ok) {
+        const d = await r.json();
+        const val = d?.geram18?.value;
+        if (val) {
+          setPrice(Math.round(Number(val) / 10));
+          setStatus('ok');
+          setLastUpdate(todayJalali());
+          return;
+        }
+      }
+    } catch { /* try next */ }
+
+    // ۳. bonbast.net
+    try {
+      const r = await fetch('https://bonbast.com/json', { cache: 'no-store' });
+      if (r.ok) {
+        const d = await r.json();
+        if (d?.gold_18k) {
+          setPrice(Math.round(Number(d.gold_18k) / 10));
+          setStatus('ok');
+          setLastUpdate(todayJalali());
+          return;
+        }
+      }
+    } catch { /* fail */ }
+
+    setStatus('error');
+  };
 
   useEffect(() => {
-    const fetchPrice = async () => {
-      // TGJU — قیمت گرم طلای ۱۸ عیار
-      try {
-        const r = await fetch(
-          'https://call.tgju.org/api/v1/market/indicator/summary-table-data/current?markets[]=geram18',
-          { headers: { 'Accept': 'application/json' } }
-        );
-        const d = await r.json();
-        const raw = d?.current?.geram18?.p;
-        const chg = d?.current?.geram18?.d;
-        if (raw) {
-          setPrice(Math.round(Number(raw.replace(/,/g, '')) / 10));
-          if (chg) setChange(Number(chg));
-          return;
-        }
-      } catch { /* fallback */ }
-
-      // Fallback — navasan.com
-      try {
-        const r = await fetch('https://api.navasan.tech/latest/?api_key=free&item=geram18');
-        const d = await r.json();
-        if (d?.geram18?.value) {
-          setPrice(Math.round(Number(d.geram18.value) / 10));
-          return;
-        }
-      } catch { /* ignore */ }
-
-      setError(true);
-    };
-
     fetchPrice();
-    const interval = setInterval(fetchPrice, 5 * 60 * 1000); // هر ۵ دقیقه
-    return () => clearInterval(interval);
+    const t = setInterval(fetchPrice, 5 * 60 * 1000);
+    return () => clearInterval(t);
   }, []);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.5 }}
-      className="bg-[#110E09] border border-[#C9A84C]/20 rounded-2xl p-5 col-span-full md:col-span-2"
-    >
-      <div className="flex items-center gap-2 mb-2">
-        <Gem size={16} className="text-[#C9A84C]" />
-        <span className="text-[#FAF7F0]/60 text-sm">قیمت لحظه‌ای طلا</span>
-        <span className="text-xs text-[#C9A84C]/50 mr-auto">منبع: tgju.org</span>
+    <motion.div {...fadeUp(0.35)}
+      className="bg-[#110E09] border border-[#C9A84C]/20 rounded-2xl p-5 col-span-2 md:col-span-2 relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-[#C9A84C]/5 to-transparent pointer-events-none" />
+
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-[#E8C96A] animate-pulse" />
+          <span className="text-[#FAF7F0]/50 text-xs">قیمت لحظه‌ای طلا</span>
+        </div>
+        <button onClick={fetchPrice} className="text-[#C9A84C]/40 hover:text-[#C9A84C] transition-colors">
+          <RefreshCw size={14} />
+        </button>
       </div>
-      {error ? (
-        <p className="text-[#FAF7F0]/30 text-sm mt-2">خطا در دریافت قیمت</p>
-      ) : price ? (
+
+      {status === 'loading' && (
+        <div className="skeleton-box h-9 w-52 rounded-xl" />
+      )}
+      {status === 'error' && (
         <div>
-          <p className="shimmer-text text-2xl font-bold">{fmt(price)} تومان</p>
-          <div className="flex items-center gap-3 mt-1">
-            <p className="text-[#FAF7F0]/40 text-xs">هر گرم طلای ۱۸ عیار</p>
+          <p className="text-[#FAF7F0]/30 text-sm">خطا در دریافت قیمت</p>
+          <button onClick={fetchPrice} className="text-[#C9A84C] text-xs mt-1 underline">تلاش مجدد</button>
+        </div>
+      )}
+      {status === 'ok' && price && (
+        <div>
+          <motion.p
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="shimmer-text text-2xl font-bold"
+          >
+            {fmt(price)} تومان
+          </motion.p>
+          <div className="flex items-center gap-3 mt-1.5">
+            <p className="text-[#FAF7F0]/30 text-xs">هر گرم طلای ۱۸ عیار</p>
             {change !== null && (
-              <span className={`text-xs font-medium ${change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                change >= 0 ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
+              }`}>
                 {change >= 0 ? '▲' : '▼'} {Math.abs(change).toFixed(2)}%
               </span>
             )}
           </div>
+          {lastUpdate && <p className="text-[#FAF7F0]/20 text-xs mt-1">آخرین بروزرسانی: {lastUpdate}</p>}
         </div>
-      ) : (
-        <div className="skeleton-box h-8 w-48 rounded-lg mt-2" />
       )}
+    </motion.div>
+  );
+}
+
+function PageHeader({ title, subtitle }: { title: string; subtitle: string }) {
+  return (
+    <motion.div {...fadeUp(0)} className="mb-6">
+      <motion.h1
+        initial={{ opacity: 0, x: 10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.3 }}
+        className="text-xl font-bold text-[#E8C96A]"
+      >
+        {title}
+      </motion.h1>
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.1 }}
+        className="text-[#FAF7F0]/30 text-xs mt-1"
+      >
+        {subtitle}
+      </motion.p>
     </motion.div>
   );
 }
@@ -129,58 +190,49 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className="skeleton-box h-28 rounded-2xl" />
-        ))}
+        {[...Array(6)].map((_, i) => <div key={i} className="skeleton-box h-28 rounded-2xl" />)}
       </div>
     );
   }
 
   const s = stats!;
-  const today = todayJalali();
 
   return (
     <div>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-6">
-        <h1 className="text-xl font-bold text-[#E8C96A]">داشبورد</h1>
-        <p className="text-[#FAF7F0]/40 text-sm mt-1">{today}</p>
-      </motion.div>
+      <PageHeader title="داشبورد" subtitle={`امروز — ${todayJalali()}`} />
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-        <StatCard label="کل خرید" value={`${fmt(s.totalBought)} ت`} sub={`${s.totalGoldBought.toFixed(2)} گرم`} icon={TrendingDown} color="text-blue-400" delay={0.1} />
-        <StatCard label="کل فروش" value={`${fmt(s.totalSold)} ت`} sub={`${s.totalGoldSold.toFixed(2)} گرم`} icon={TrendingUp} color="text-green-400" delay={0.15} />
-        <StatCard label="سود کل" value={`${fmt(s.totalProfit)} ت`} icon={DollarSign} color="text-[#C9A84C]" delay={0.2} />
-        <StatCard label="فاکتورها" value={`${s.salesCount} فاکتور`} icon={Receipt} color="text-purple-400" delay={0.25} />
-        <StatCard label="موجودی تقریبی" value={`${(s.totalGoldBought - s.totalGoldSold).toFixed(2)} گرم`} icon={Scale} color="text-orange-400" delay={0.3} />
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+        <StatCard label="کل خرید"    value={`${fmt(s.totalBought)} ت`}  sub={`${s.totalGoldBought.toFixed(2)} گرم`} icon={TrendingDown} accent="#60a5fa" delay={0.05} />
+        <StatCard label="کل فروش"    value={`${fmt(s.totalSold)} ت`}    sub={`${s.totalGoldSold.toFixed(2)} گرم`}  icon={TrendingUp}   accent="#4ade80" delay={0.1}  />
+        <StatCard label="سود کل"     value={`${fmt(s.totalProfit)} ت`}                                             icon={DollarSign}   accent="#C9A84C" delay={0.15} />
+        <StatCard label="فاکتورها"   value={`${s.salesCount} فاکتور`}                                             icon={Receipt}      accent="#a78bfa" delay={0.2}  />
+        <StatCard label="موجودی"     value={`${(s.totalGoldBought - s.totalGoldSold).toFixed(2)} گرم`}            icon={Scale}        accent="#fb923c" delay={0.25} />
         <GoldPriceWidget />
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="bg-[#110E09] border border-[#C9A84C]/15 rounded-2xl p-5"
-      >
-        <p className="text-[#FAF7F0]/50 text-sm mb-4">خلاصه مالی</p>
-        <div className="space-y-3">
+      {/* Bar chart */}
+      <motion.div {...fadeUp(0.4)}
+        className="bg-[#110E09] border border-[#C9A84C]/12 rounded-2xl p-5">
+        <p className="text-[#FAF7F0]/40 text-sm mb-5">خلاصه مالی</p>
+        <div className="space-y-4">
           {[
-            { label: 'درآمد فروش', val: s.totalSold, color: '#4ade80' },
-            { label: 'هزینه خرید', val: s.totalBought, color: '#60a5fa' },
-            { label: 'سود خالص', val: s.totalProfit, color: '#E8C96A' },
-          ].map(item => {
-            const max = Math.max(s.totalSold, s.totalBought, s.totalProfit, 1);
-            const pct = (item.val / max) * 100;
+            { label: 'درآمد فروش',  val: s.totalSold,   color: '#4ade80' },
+            { label: 'هزینه خرید',  val: s.totalBought, color: '#60a5fa' },
+            { label: 'سود خالص',    val: s.totalProfit, color: '#E8C96A' },
+          ].map((item, i) => {
+            const max = Math.max(s.totalSold, s.totalBought, Math.abs(s.totalProfit), 1);
+            const pct = Math.max(0, (item.val / max) * 100);
             return (
               <div key={item.label}>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-[#FAF7F0]/60">{item.label}</span>
+                <div className="flex justify-between text-xs mb-1.5">
+                  <span className="text-[#FAF7F0]/50">{item.label}</span>
                   <span style={{ color: item.color }}>{fmt(item.val)} ت</span>
                 </div>
-                <div className="h-2 bg-[#C9A84C]/10 rounded-full overflow-hidden">
+                <div className="h-2 bg-[#C9A84C]/8 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${pct}%` }}
-                    transition={{ delay: 0.6, duration: 0.8, ease: 'easeOut' }}
+                    transition={{ delay: 0.5 + i * 0.1, duration: 0.7, ease: 'easeOut' }}
                     className="h-full rounded-full"
                     style={{ background: item.color }}
                   />
