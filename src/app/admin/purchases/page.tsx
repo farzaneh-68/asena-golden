@@ -4,8 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, ShoppingCart, X } from 'lucide-react';
 import { getPurchases, addPurchase, deletePurchase, fmt } from '@/lib/db';
 import type { Purchase } from '@/lib/supabase';
+import DateInput from '@/components/admin/DateInput';
+import { toJalaliLong, todayJalali, toGregorian } from '@/lib/date';
 
-const EMPTY = { date: '', supplier: '', weight: '', karat: 18, price_per_gram: '', wage: '', notes: '' };
+const EMPTY = { date: toGregorian(todayJalali()), supplier: '', weight: '', karat: 18, price_per_gram: '', wage: '', notes: '' };
 
 export default function PurchasesPage() {
   const [items, setItems] = useState<Purchase[]>([]);
@@ -89,7 +91,7 @@ export default function PurchasesPage() {
               <form onSubmit={save} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="تاریخ" required>
-                    <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} required className={inputCls} dir="ltr" />
+                    <DateInput value={form.date} onChange={d => setForm(f => ({ ...f, date: d }))} required className={inputCls} />
                   </Field>
                   <Field label="فروشنده">
                     <input value={form.supplier} onChange={e => setForm(f => ({ ...f, supplier: e.target.value }))} placeholder="نام بنکدار/فروشنده" className={inputCls} />
@@ -159,7 +161,7 @@ export default function PurchasesPage() {
                 <div className="flex items-center gap-3 mt-1">
                   <span className="text-[#E8C96A] text-sm font-bold">{fmt(item.total_price)} ت</span>
                   <span className="text-[#FAF7F0]/30 text-xs">{fmt(item.price_per_gram)} ت/گرم</span>
-                  <span className="text-[#FAF7F0]/30 text-xs mr-auto">{new Date(item.date).toLocaleDateString('fa-IR')}</span>
+                  <span className="text-[#FAF7F0]/30 text-xs mr-auto">{toJalaliLong(item.date)}</span>
                 </div>
               </div>
               <button onClick={() => del(item.id)} className="text-red-400/60 hover:text-red-400 transition-colors shrink-0">

@@ -4,9 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, TrendingUp, X, Printer, Gem } from 'lucide-react';
 import { getSales, addSale, deleteSale, getCustomers, fmt } from '@/lib/db';
 import type { Sale, Customer } from '@/lib/supabase';
+import DateInput from '@/components/admin/DateInput';
+import { toJalaliLong, todayJalali, toGregorian } from '@/lib/date';
 
 const EMPTY = {
-  date: '', customer_name: '', customer_id: '',
+  date: toGregorian(todayJalali()), customer_name: '', customer_id: '',
   weight: '', karat: 18, price_per_gram: '', wage: '', tax: '',
   buy_price_per_gram: '', notes: '', invoice_number: ''
 };
@@ -113,7 +115,7 @@ export default function SalesPage() {
                     <input value={form.invoice_number} onChange={e => setForm(f => ({ ...f, invoice_number: e.target.value }))} className={inputCls} dir="ltr" />
                   </Field>
                   <Field label="تاریخ" required>
-                    <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} required className={inputCls} dir="ltr" />
+                    <DateInput value={form.date} onChange={d => setForm(f => ({ ...f, date: d }))} required className={inputCls} />
                   </Field>
                 </div>
 
@@ -218,7 +220,7 @@ export default function SalesPage() {
                 </div>
                 <div className="border-t border-b border-gray-200 py-4 mb-4 space-y-2">
                   <InvRow label="مشتری" val={invoice.customer_name ?? '—'} />
-                  <InvRow label="تاریخ" val={new Date(invoice.date).toLocaleDateString('fa-IR')} />
+                  <InvRow label="تاریخ" val={toJalaliLong(invoice.date)} />
                   <InvRow label="وزن" val={`${invoice.weight} گرم — ${invoice.karat} عیار`} />
                   <InvRow label="قیمت هر گرم" val={`${fmt(invoice.price_per_gram)} تومان`} />
                   <InvRow label="اجرت" val={`${fmt(invoice.wage)} تومان`} />
@@ -270,7 +272,7 @@ export default function SalesPage() {
                         سود: {fmt(item.profit)} ت
                       </span>
                     )}
-                    <span className="text-[#FAF7F0]/30 text-xs mr-auto">{new Date(item.date).toLocaleDateString('fa-IR')}</span>
+                    <span className="text-[#FAF7F0]/30 text-xs mr-auto">{toJalaliLong(item.date)}</span>
                   </div>
                 </div>
                 <div className="flex gap-2 shrink-0">

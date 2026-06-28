@@ -4,9 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, Landmark, X } from 'lucide-react';
 import { getBankings, addBanking, deleteBanking, getCustomers, fmt } from '@/lib/db';
 import type { Banking, Customer } from '@/lib/supabase';
+import DateInput from '@/components/admin/DateInput';
+import { toJalaliLong, todayJalali, toGregorian } from '@/lib/date';
 
 const EMPTY = {
-  date: '', customer_name: '', customer_id: '',
+  date: toGregorian(todayJalali()), customer_name: '', customer_id: '',
   weight: '', karat: 18,
   buy_price_per_gram: '', sell_price_per_gram: '', notes: ''
 };
@@ -98,7 +100,7 @@ export default function BankingPage() {
               <form onSubmit={save} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="تاریخ" required>
-                    <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} required className={inputCls} dir="ltr" />
+                    <DateInput value={form.date} onChange={d => setForm(f => ({ ...f, date: d }))} required className={inputCls} />
                   </Field>
                   <Field label="مشتری">
                     {customers.length > 0 ? (
@@ -187,7 +189,7 @@ export default function BankingPage() {
                   <span className="text-blue-400 text-xs">خرید: {fmt(item.total_buy)} ت</span>
                   <span className="text-green-400 text-xs">فروش: {fmt(item.total_sell)} ت</span>
                   <span className={`text-xs font-bold ${item.profit >= 0 ? 'text-[#E8C96A]' : 'text-red-400'}`}>سود: {fmt(item.profit)} ت</span>
-                  <span className="text-[#FAF7F0]/30 text-xs mr-auto">{new Date(item.date).toLocaleDateString('fa-IR')}</span>
+                  <span className="text-[#FAF7F0]/30 text-xs mr-auto">{toJalaliLong(item.date)}</span>
                 </div>
               </div>
               <button onClick={() => del(item.id)} className="text-red-400/60 hover:text-red-400 shrink-0">

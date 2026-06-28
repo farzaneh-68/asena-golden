@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, Scale, Receipt, DollarSign, Gem } from 'lucide-react';
 import { getStats, fmt } from '@/lib/db';
+import { todayJalali } from '@/lib/date';
 
 type Stats = {
   totalBought: number;
@@ -99,7 +100,7 @@ export default function Dashboard() {
   }
 
   const s = stats!;
-  const today = new Date().toLocaleDateString('fa-IR');
+  const today = todayJalali();
 
   return (
     <div>
