@@ -49,7 +49,7 @@ export default function PurchasesPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
         <div>
           <h1 className="text-xl font-bold text-[#E8C96A]">خرید طلا</h1>
           <p className="text-[#FAF7F0]/40 text-xs mt-1">ثبت طلاهای خریداری شده</p>
