@@ -43,15 +43,43 @@ function StatCard({
 
 function GoldPriceWidget() {
   const [price, setPrice] = useState<number | null>(null);
+  const [change, setChange] = useState<number | null>(null);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    fetch('https://brsapi.ir/Api/Market/Gold_Currency.php?key=free')
-      .then(r => r.json())
-      .then(d => {
-        const g = d?.gold?.find((x: { name: string; price: number }) => x.name?.includes('18') || x.name?.includes('مثقال'));
-        if (g) setPrice(g.price);
-      })
-      .catch(() => null);
+    const fetchPrice = async () => {
+      // TGJU — قیمت گرم طلای ۱۸ عیار
+      try {
+        const r = await fetch(
+          'https://call.tgju.org/api/v1/market/indicator/summary-table-data/current?markets[]=geram18',
+          { headers: { 'Accept': 'application/json' } }
+        );
+        const d = await r.json();
+        const raw = d?.current?.geram18?.p;
+        const chg = d?.current?.geram18?.d;
+        if (raw) {
+          setPrice(Math.round(Number(raw.replace(/,/g, '')) / 10));
+          if (chg) setChange(Number(chg));
+          return;
+        }
+      } catch { /* fallback */ }
+
+      // Fallback — navasan.com
+      try {
+        const r = await fetch('https://api.navasan.tech/latest/?api_key=free&item=geram18');
+        const d = await r.json();
+        if (d?.geram18?.value) {
+          setPrice(Math.round(Number(d.geram18.value) / 10));
+          return;
+        }
+      } catch { /* ignore */ }
+
+      setError(true);
+    };
+
+    fetchPrice();
+    const interval = setInterval(fetchPrice, 5 * 60 * 1000); // هر ۵ دقیقه
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -64,12 +92,21 @@ function GoldPriceWidget() {
       <div className="flex items-center gap-2 mb-2">
         <Gem size={16} className="text-[#C9A84C]" />
         <span className="text-[#FAF7F0]/60 text-sm">قیمت لحظه‌ای طلا</span>
-        <span className="text-xs text-[#C9A84C]/50 mr-auto">منبع: brsapi.ir</span>
+        <span className="text-xs text-[#C9A84C]/50 mr-auto">منبع: tgju.org</span>
       </div>
-      {price ? (
+      {error ? (
+        <p className="text-[#FAF7F0]/30 text-sm mt-2">خطا در دریافت قیمت</p>
+      ) : price ? (
         <div>
           <p className="shimmer-text text-2xl font-bold">{fmt(price)} تومان</p>
-          <p className="text-[#FAF7F0]/40 text-xs mt-1">هر گرم طلای ۱۸ عیار</p>
+          <div className="flex items-center gap-3 mt-1">
+            <p className="text-[#FAF7F0]/40 text-xs">هر گرم طلای ۱۸ عیار</p>
+            {change !== null && (
+              <span className={`text-xs font-medium ${change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {change >= 0 ? '▲' : '▼'} {Math.abs(change).toFixed(2)}%
+              </span>
+            )}
+          </div>
         </div>
       ) : (
         <div className="skeleton-box h-8 w-48 rounded-lg mt-2" />
